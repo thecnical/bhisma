@@ -10,7 +10,7 @@ without validating against a real backend.
 import socket
 import struct
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 
 

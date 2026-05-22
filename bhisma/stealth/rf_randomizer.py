@@ -5,6 +5,7 @@ Randomizes transmit power, rate, and timing to evade RF fingerprinting.
 """
 
 import random
+from typing import Optional
 
 
 class RFRandomizer:

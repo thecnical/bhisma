@@ -6,6 +6,7 @@ and monitor mode commands.
 """
 
 import sys
+import os
 import platform as _platform
 import subprocess
 import shutil
