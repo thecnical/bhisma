@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bhisma Dashboard v3.0.0</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e94560;
+        }
+        .brand-logo {
+            display: flex;
+            align-items: center;
+        }
+        .ascii-art {
+            font-family: 'Courier New', monospace;
+            font-size: 8px;
+            line-height: 1;
+            color: #e94560;
+            text-shadow: 0 0 10px #e94560;
+            margin: 0;
+            white-space: pre;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 5px #e94560, 0 0 10px #e94560; }
+            to { text-shadow: 0 0 10px #e94560, 0 0 20px #e94560, 0 0 30px #e94560; }
+        }
+        .brand-text {
+            margin-left: 15px;
+        }
+        .brand-text h1 {
+            color: #e94560;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+        .tagline {
+            color: #888;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+        }
+        .header .status {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+        }
+        .status-item { display: flex; align-items: center; gap: 6px; }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #00ff88; box-shadow: 0 0 8px #00ff88;
+        }
+        .status-dot.offline { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, calc(50vh - 40px));
+            gap: 8px;
+            padding: 8px;
+            height: calc(100vh - 60px);
+        }
+        .panel {
+            background: #111118;
+            border: 1px solid #222;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            background: #1a1a2e;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #e94560;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+            padding: 8px;
+            font-size: 0.8rem;
+        }
+        #map { height: 100%; width: 100%; background: #111; }
+        .target-tree { font-family: monospace; }
+        .target-item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #1a1a2e;
+            cursor: pointer;
+        }
+        .target-item:hover { background: #1a1a2e; }
+        .target-bssid { color: #e94560; font-weight: bold; }
+        .target-ssid { color: #00d4aa; }
+        .target-meta { color: #888; font-size: 0.75rem; }
+        .score-bar {
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #ffaa00, #ff4444);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+        .ai-log-entry {
+            padding: 6px 8px;
+            border-left: 3px solid #e94560;
+            margin-bottom: 4px;
+            background: #0d0d14;
+        }
+        .ai-log-timestamp { color: #666; font-size: 0.7rem; }
+        .ai-log-provider { color: #e94560; font-weight: bold; }
+        .ai-log-decision { color: #ccc; }
+        .ai-log-confidence { color: #00d4aa; float: right; }
+        .timeline-item {
+            padding: 6px 8px;
+            border-left: 2px solid #333;
+            margin-left: 10px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            top: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e94560;
+        }
+        .timeline-item.success::before { background: #00ff88; }
+        .timeline-item.failure::before { background: #ff4444; }
+        .terminal-line {
+            font-family: 'Courier New', monospace;
+            padding: 1px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .terminal-line.stdout { color: #ccc; }
+        .terminal-line.stderr { color: #ff6666; }
+        .terminal-line.info { color: #00d4aa; }
+        .sys-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .sys-card {
+            background: #0d0d14;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #222;
+        }
+        .sys-label { color: #888; font-size: 0.75rem; }
+        .sys-value { color: #e94560; font-weight: bold; font-size: 1rem; }
+        .key-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin: 2px;
+        }
+        .key-ok { background: #004d1a; color: #00ff88; }
+        .key-missing { background: #4d0000; color: #ff6666; }
+        .key-quota { background: #4d3d00; color: #ffcc00; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand-logo">
+            <pre id="ascii-logo" class="ascii-art"></pre>
+        </div>
+        <div class="brand-text">
+            <h1>BHISMA <span style="color:#888;font-size:0.8rem">v3.0.0</span></h1>
+            <div class="tagline">AI-Powered Autonomous Offensive WiFi Framework</div>
+        </div>
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot" id="daemon-dot"></div>
+                <span id="daemon-status">Daemon: Standby</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="ws-dot"></div>
+                <span id="ws-status">WebSocket: Connecting</span>
+            </div>
+            <div class="status-item">
+                <span id="active-attacks">Attacks: 0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- Panel 1: Network Map -->
+        <div class="panel">
+            <div class="panel-header">Network Map</div>
+            <div class="panel-content" id="map"></div>
+        </div>
+
+        <!-- Panel 2: Target Tree -->
+        <div class="panel">
+            <div class="panel-header">
+                Target Tree
+                <span style="color:#888;font-size:0.7rem" id="target-count">0 targets</span>
+            </div>
+            <div class="panel-content target-tree" id="target-tree"></div>
+        </div>
+
+        <!-- Panel 3: AI Brain Log -->
+        <div class="panel">
+            <div class="panel-header">
+                AI Brain Log
+                <span style="color:#888;font-size:0.7rem" id="ai-provider">No AI active</span>
+            </div>
+            <div class="panel-content" id="ai-log"></div>
+        </div>
+
+        <!-- Panel 4: Attack Timeline -->
+        <div class="panel">
+            <div class="panel-header">
+                Attack Timeline
+                <span style="color:#888;font-size:0.7rem" id="timeline-count">0 events</span>
+            </div>
+            <div class="panel-content" id="timeline"></div>
+        </div>
+
+        <!-- Panel 5: Terminal Panels -->
+        <div class="panel">
+            <div class="panel-header">
+                Terminal Panels
+                <span style="color:#888;font-size:0.7rem" id="active-tools">0 tools</span>
+            </div>
+            <div class="panel-content" id="terminals"></div>
+        </div>
+
+        <!-- Panel 6: System + Keys -->
+        <div class="panel">
+            <div class="panel-header">
+                System & Keys
+                <button onclick="reconnectWS()" style="background:#e94560;color:#fff;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:0.7rem">Reconnect</button>
+            </div>
+            <div class="panel-content">
+                <div class="sys-grid">
+                    <div class="sys-card">
+                        <div class="sys-label">Interface</div>
+                        <div class="sys-value" id="sys-iface">--</div>
+                    </div>
+                    <div class="sys-card">
+                        <div class="sys-label">Monitor Mode</div>
+                        <div class="sys-value" id="sys-monitor">--</div>
+                    </div>
+                    <div class="sys-card">
+                        <div class="sys-label">CPU Usage</div>
+                        <div class="sys-value" id="sys-cpu">--%</div>
+                    </div>
+                    <div class="sys-card">
+                        <div class="sys-label">Memory</div>
+                        <div class="sys-value" id="sys-mem">--</div>
+                    </div>
+                </div>
+                <div style="margin-top:10px">
+                    <div class="sys-label">AI Providers</div>
+                    <div id="key-badges" style="margin-top:4px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+        let ws = null;
+        let reconnectAttempts = 0;
+        let messageCount = { targets: 0, ai: 0, timeline: 0, terminals: 0 };
+
+        // Initialize map
+        const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        function connectWS() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                reconnectAttempts = 0;
+                document.getElementById('ws-dot').classList.remove('offline');
+                document.getElementById('ws-status').textContent = 'WebSocket: Connected';
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleMessage(msg);
+                } catch (e) {
+                    console.error('Invalid JSON:', event.data);
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('ws-dot').classList.add('offline');
+                document.getElementById('ws-status').textContent = 'WebSocket: Disconnected';
+                if (reconnectAttempts < 5) {
+                    reconnectAttempts++;
+                    setTimeout(connectWS, 3000 * reconnectAttempts);
+                }
+            };
+
+            ws.onerror = () => {
+                document.getElementById('ws-dot').classList.add('offline');
+            };
+        }
+
+        function reconnectWS() {
+            reconnectAttempts = 0;
+            if (ws) ws.close();
+            connectWS();
+        }
+
+        function handleMessage(msg) {
+            if (msg.type === 'target') {
+                addTarget(msg.data);
+            } else if (msg.type === 'ai_log') {
+                addAILog(msg.data);
+            } else if (msg.type === 'timeline') {
+                addTimeline(msg.data);
+            } else if (msg.type === 'tool_output') {
+                addTerminalLine(msg.tool, msg.stream, msg.line);
+            } else if (msg.type === 'tool_result') {
+                addTerminalLine(msg.tool, 'info', `[${msg.tool}] Exit: ${msg.return_code} | Duration: ${msg.duration?.toFixed(1)}s`);
+            } else if (msg.type === 'status') {
+                updateSystem(msg.data);
+            }
+        }
+
+        function addTarget(target) {
+            const tree = document.getElementById('target-tree');
+            const item = document.createElement('div');
+            item.className = 'target-item';
+            const scorePct = Math.min(100, Math.max(0, target.score || 0));
+            item.innerHTML = `
+                <div><span class="target-bssid">${target.bssid}</span> <span class="target-ssid">${target.ssid || '<hidden>'}</span></div>
+                <div class="target-meta">Ch:${target.channel} | Sig:${target.signal}dBm | ${target.encryption} | Clients:${target.clients || 0}</div>
+                <div class="score-bar"><div class="score-fill" style="width:${scorePct}%"></div></div>
+            `;
+            tree.insertBefore(item, tree.firstChild);
+            messageCount.targets++;
+            document.getElementById('target-count').textContent = `${messageCount.targets} targets`;
+
+            // Add marker to map (random offset for demo)
+            const lat = (Math.random() - 0.5) * 10;
+            const lng = (Math.random() - 0.5) * 10;
+            const color = scorePct > 70 ? '#ff4444' : scorePct > 40 ? '#ffaa00' : '#00ff88';
+            L.circleMarker([lat, lng], { radius: 8, color: color, fillColor: color, fillOpacity: 0.7 })
+                .addTo(map)
+                .bindPopup(`<b>${target.ssid || 'Hidden'}</b><br>${target.bssid}<br>Score: ${target.score}`);
+        }
+
+        function addAILog(log) {
+            const container = document.getElementById('ai-log');
+            const entry = document.createElement('div');
+            entry.className = 'ai-log-entry';
+            entry.innerHTML = `
+                <div>
+                    <span class="ai-log-timestamp">${new Date().toLocaleTimeString()}</span>
+                    <span class="ai-log-provider">${log.provider || 'AI'}</span>
+                    <span class="ai-log-confidence">${log.confidence ? (log.confidence * 100).toFixed(0) + '%' : ''}</span>
+                </div>
+                <div class="ai-log-decision">${log.decision || log.text || JSON.stringify(log)}</div>
+            `;
+            container.insertBefore(entry, container.firstChild);
+            if (container.children.length > 50) container.lastChild.remove();
+
+            document.getElementById('ai-provider').textContent = log.provider ? `Active: ${log.provider}` : 'No AI active';
+        }
+
+        function addTimeline(event) {
+            const container = document.getElementById('timeline');
+            const item = document.createElement('div');
+            item.className = `timeline-item ${event.status || ''}`;
+            item.innerHTML = `
+                <div style="font-size:0.7rem;color:#888">${new Date().toLocaleTimeString()}</div>
+                <div style="color:#ccc">${event.phase || event.action || 'Unknown'}</div>
+                <div style="font-size:0.75rem;color:#e94560">${event.result || ''}</div>
+            `;
+            container.insertBefore(item, container.firstChild);
+            messageCount.timeline++;
+            document.getElementById('timeline-count').textContent = `${messageCount.timeline} events`;
+        }
+
+        function addTerminalLine(tool, stream, line) {
+            const container = document.getElementById('terminals');
+            const div = document.createElement('div');
+            div.className = `terminal-line ${stream}`;
+            div.textContent = `[${tool}] ${line}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            if (container.children.length > 200) container.removeChild(container.firstChild);
+        }
+
+        function updateSystem(data) {
+            if (data.iface) document.getElementById('sys-iface').textContent = data.iface;
+            if (data.monitor) document.getElementById('sys-monitor').textContent = data.monitor ? 'ON' : 'OFF';
+            if (data.cpu !== undefined) document.getElementById('sys-cpu').textContent = data.cpu + '%';
+            if (data.mem) document.getElementById('sys-mem').textContent = data.mem;
+
+            if (data.providers) {
+                const badges = document.getElementById('key-badges');
+                badges.innerHTML = Object.entries(data.providers).map(([name, status]) => {
+                    const cls = status === 'ok' ? 'key-ok' : status === 'quota' ? 'key-quota' : 'key-missing';
+                    const txt = status === 'ok' ? 'OK' : status === 'quota' ? 'QUOTA' : 'MISS';
+                    return `<span class="key-badge ${cls}">${name}: ${txt}</span>`;
+                }).join('');
+            }
+        }
+
+        // Initial connection
+        connectWS();
+
+        // Animated ASCII logo
+        const logoFrames = [
+            `
+ ██░ ██ ▓██   ██▓▄▄▄       █     █░
+▓██░ ██▒ ▒██  ██▒▒████▄    ▓█░ █ ░█░▒
+▒██▀▀██░  ▒██ ██░▒██  ▀█▄  ▒█░ █ ░█ ░
+░▓█ ░██   ░ ▐██▓░░██▄▄▄▄██ ░█░ █ ░█ ░
+░▓█▒░██▒ ░ ██▒▓░ ▓█   ▓██▒░░██▒██▓ ░
+ ▒ ░░▒░▒  ██▒▒▒  ▒▒   ▒▒▒░ ░ ▓░▒ ▒  ░
+`,
+            `
+ ██░ ██ ▓██   ██▓▄▄▄       █     █░
+▓██░ ██▒ ▒██  ██▒▒████▄    ▓█░ █ ░█░▒
+▒██▀▀██░  ▒██ ██░▒██  ▀█▄  ▒█░ █ ░█ ░
+░▓█ ░██   ░ ▐██▓░░██▄▄▄▄██ ░█░ █ ░█ ░
+░▓█▒░██▒ ░ ██▒▓░ ▓█   ▓██▒░░██▒██▓ ░
+ ▒ ░░▒░▒  ██▒▒▒  ▒▒   ▒▒▒░ ░ ▓░▒ ▒  ░
+`,
+        ];
+        let logoFrame = 0;
+        const logoEl = document.getElementById('ascii-logo');
+        if (logoEl) {
+            logoEl.textContent = logoFrames[0];
+            setInterval(() => {
+                logoFrame = (logoFrame + 1) % logoFrames.length;
+                logoEl.textContent = logoFrames[logoFrame];
+            }, 3000);
+        }
+
+        // Poll system status every 5 seconds
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'status_request' }));
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

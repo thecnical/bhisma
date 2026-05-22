@@ -1,0 +1,70 @@
+# Bhisma Framework Configuration
+# ==============================
+# This is the default configuration file.
+# Copy to ~/.bhisma/config.yaml and customize.
+
+framework_name: "Bhisma"
+version: "3.0.0"
+data_dir: "~/.bhisma"
+log_level: "INFO"
+
+ai:
+  nvidia_api_key: null
+  groq_api_key: null
+  claude_api_key: null
+  huggingface_api_key: null
+  openrouter_api_key: null
+  gemini_api_key: null
+  timeout_seconds: 60
+  max_retries: 3
+  uncensored_mode: true
+  enable_ai_brain: true
+  ai_memory_limit: 20
+
+tools:
+  auto_install: true
+  install_timeout: 300
+  tool_paths: {}
+  check_on_startup: true
+
+wifi:
+  default_interface: null
+  scan_channels: []
+  dwell_time: 0.5
+  auto_target_timeout: 20
+  deauth_count: 3
+  silent_deauth_enabled: true
+  evil_twin_portal_enabled: true
+  handshake_auto_crack: true
+  wordlist_url: "https://github.com/danielmiessler/SecLists/raw/master/Passwords/Common-Credentials/rockyou.txt.tar.gz"
+
+mitm:
+  arp_spoof_enabled: true
+  dns_spoof_enabled: true
+  ssl_strip_enabled: false
+  rogue_dhcp_enabled: true
+  socks_proxy_port: 1080
+  traffic_capture_enabled: true
+
+dashboard:
+  enabled: true
+  host: "127.0.0.1"
+  port: 8080
+  auto_open_browser: true
+  websocket_max_size: 1048576
+
+autonomous:
+  enabled: true
+  daemon_poll_interval: 5.0
+  max_concurrent_attacks: 3
+  safety_whitelist: []
+  safety_blacklist: []
+  rules_file: null
+  enable_ml_models: true
+
+stealth:
+  mac_rotation_interval: 300
+  oui_consistency: true
+  timing_jitter: true
+  honeypot_auto_detect: true
+  rf_randomization: true
