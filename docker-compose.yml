@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  bhisma:
+    build: .
+    container_name: bhisma
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - bhisma_data:/app/.bhisma
+      - ./captures:/app/captures
+      - ./reports:/app/reports
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Required for monitor mode (Linux host only)
+    # network_mode: host
+    # privileged: true
+    # cap_add:
+    #   - NET_ADMIN
+    #   - NET_RAW
+    command: bhisma dashboard --host 0.0.0.0 --port 8080
+
+  # Optional: Run with full network access (Linux only)
+  bhisma-full:
+    build: .
+    container_name: bhisma-full
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - bhisma_data:/app/.bhisma
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command: bhisma dashboard --host 0.0.0.0 --port 8080
+    profiles:
+      - full
+
+volumes:
+  bhisma_data:
