@@ -274,3 +274,7 @@ class LLMOrchestrator:
             raise ProviderError(f"Provider {provider_name} not available")
         full_prompt = self._build_prompt(prompt, system, uncensored, use_memory=False)
         return provider.stream_chat(full_prompt, model=model)
+
+
+# Alias for compatibility
+AIOrchestrator = LLMOrchestrator

@@ -36,6 +36,11 @@ class BhismaPlatform:
             self.platform_type = PlatformType.UNKNOWN
 
     @property
+    def os(self) -> str:
+        """Return OS name string."""
+        return self.system
+
+    @property
     def is_windows(self) -> bool:
         return self.platform_type == PlatformType.WINDOWS
 

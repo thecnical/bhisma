@@ -212,6 +212,10 @@ def list_tools(category: Optional[str] = None) -> List[ToolMeta]:
     return list(TOOL_REGISTRY.values())
 
 
+# Alias for compatibility
+ToolRegistry = TOOL_REGISTRY
+
+
 def list_categories() -> List[str]:
     """Return list of tool categories."""
     return sorted({t.category for t in TOOL_REGISTRY.values()})

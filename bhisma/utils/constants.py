@@ -9,6 +9,7 @@ import os
 # Framework metadata
 FRAMEWORK_NAME = "Bhisma"
 FRAMEWORK_VERSION = "3.0.0"
+VERSION = FRAMEWORK_VERSION  # Alias for compatibility
 FRAMEWORK_AUTHOR = "Bhisma Team"
 FRAMEWORK_DESCRIPTION = (
     "AI-Powered Autonomous Multi-Protocol Offensive WiFi Framework"

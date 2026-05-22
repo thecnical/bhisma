@@ -100,3 +100,7 @@ class DaemonController:
         except (OSError, ValueError):
             os.remove(PID_FILE)
             return False
+
+
+# Alias for compatibility
+BhismaDaemon = DaemonController
